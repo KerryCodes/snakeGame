@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贪吃蛇</title>
+
+  <style>
+    .map{
+      width: 850px;
+    }
+
+  </style>
+</head>
+<body>
+  <button class="setMap">重新布局</button>
+  <button class="food">投食机</button>
+  <button class="ai" style="background-color: lawngreen;">AI版</button>
+  <button class="classic" style="background-color: lawngreen;" disabled>经典版</button>
+  <button class="start">开始/继续</button>
+  <button class="stopButt">暂停</button>
+  <select class="diff">
+    <option value="500">第一关</option>
+    <option value="250">第二关</option>
+    <option value="100">第三关</option>
+  </select>
+  <span></span>
+  <form class="map" style="border: hotpink solid;"></form>
+  
+  <script>
+    var setMap= document.querySelector('.setMap')
+    var map= document.querySelector('.map')
+    var start= document.querySelector('.start')
+    var stopButt= document.querySelector('.stopButt')
+    var diffButt= document.querySelector('.diff')
+    var food= document.querySelector('.food')
+    var ai= document.querySelector('.ai')
+    var classic= document.querySelector('.classic')
+    var Ai= false
+    var stopID
+    var time= 500
+    var td= 25
+    var tr= 42
+    var cellType= 'checkbox'
+    var snake0
+    var gameOver= true
+    makeMap(td, tr)
+
+    class Snake{
+      constructor(){
+        this.head
+        this.tail
+        this.direction= 'ArrowRight'
+        this.initialize()
+      }
+
+      makeBody(val){
+        return {
+          last: null,
+          value: val,
+          next: null
+        }
+      }
+
+      initialize(initPos= [Math.floor(Math.random()*td), Math.floor(Math.random()*tr)]){
+        let newBody= this.makeBody(initPos)
+
+        this.head= newBody
+        this.tail= newBody
+        updateMap(initPos, true)
+      }
+
+      next(){
+        let newBody
+        let newVal= this.head.value.slice()
+
+        switch(this.direction){
+          case 'ArrowUp':
+          newVal[0]--
+          break
+          case 'ArrowDown':
+          newVal[0]++
+          break
+          case 'ArrowLeft':
+          newVal[1]--
+          break
+          default:
+          newVal[1]++
+        }
+
+        if(isGameOver(newVal)){return}
+        newBody= this.makeBody(newVal)
+        if(p2map(newVal).food){
+          this.head.last= newBody
+          newBody.next= this.head
+          this.head= newBody
+          updateMap(this.head.value, true)
+          p2map(newVal).food= false
+        }else{
+          this.head.last= newBody
+          newBody.next= this.head
+          this.head= newBody
+          updateMap(this.head.value, true)
+          updateMap(this.tail.value, false)
+          this.tail= this.tail.last
+        }
+      }
+    }
+
+
+    window.addEventListener('keydown', e=>{
+      if(e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+        e.preventDefault()
+        e.target.blur()
+        if(e.key === 'ArrowUp' && snake0.direction === 'ArrowDown'){return}
+        if(e.key === 'ArrowDown' && snake0.direction === 'ArrowUp'){return}
+        if(e.key === 'ArrowLeft' && snake0.direction === 'ArrowRight'){return}
+        if(e.key === 'ArrowRight' && snake0.direction === 'ArrowLeft'){return}
+        clearInterval(stopID)
+        snake0.direction = e.key
+        snake0.next()
+        if(!gameOver){
+          go()
+        }
+      }
+    })
+    map.addEventListener('change', e=>{
+      e.target.food= e.target.checked
+    })
+    setMap.addEventListener('click', e=>{
+      stopButt.click()
+        makeMap(td, tr)
+    })
+    start.addEventListener('click', e=>{
+      if(gameOver){
+        snake0= new Snake()
+        gameOver= false
+        go()
+      }else{
+        go()
+      }
+    })
+    stopButt.addEventListener('click', e=>{
+      clearInterval(stopID)
+    })
+    diffButt.addEventListener('change', e=>{
+      stopButt.click()
+      for(it of diffButt.options){
+        if(it.selected){
+          time= it.value
+        }
+      }
+    })
+    food.addEventListener('click', e=>{
+      let n= 20
+
+      while(n-- > 0){
+        makeFood()
+      }
+    })
+    ai.addEventListener('click', e=>{
+      Ai= true
+      ai.disabled= true
+      classic.disabled= false
+    })
+    classic.addEventListener('click', e=>{
+      Ai= false
+      classic.disabled= true
+      ai.disabled= false
+    })
+
+
+    function makeMap(td, tr){
+      map.textContent= ''
+      for(let i=0; i<td; i++){
+        let brNode= document.createElement('br')
+
+        for(let j=0; j<tr; j++){
+          let node= document.createElement('input')
+
+          node.type= cellType
+          node.snake= 0
+          if(Math.random() > 0.95){
+            node.food= true
+            node.checked= true
+          }else{
+            node.food= false
+          }
+          map.append(node)
+        }
+        map.append(brNode)
+      }
+    }
+
+    function go(){
+      stopID= setInterval(()=>{
+        if(Ai){
+          let random= Math.floor(Math.random()*4)
+
+          switch(random){
+            case 0:
+              snake0.direction= snake0.direction === 'ArrowDown' ? 'ArrowDown' : 'ArrowUp'
+              break
+            case 1:
+              snake0.direction= snake0.direction === 'ArrowUp' ? 'ArrowUp' : 'ArrowDown'
+              break
+            case 2:
+              snake0.direction= snake0.direction === 'ArrowRight' ? 'ArrowRight' : 'ArrowLeft'
+              break
+            default:
+              snake0.direction= snake0.direction === 'ArrowLeft' ? 'ArrowLeft' : 'ArrowRight'
+          }
+        }
+        snake0.next()
+      }, time)
+    }
+
+    function p2map(ary){
+      return map.elements[ary[0]*tr + ary[1]]
+    }
+
+    function updateMap(ary, action){
+        if(action){
+          p2map(ary).snake++
+        }else{
+          p2map(ary).snake-= p2map(ary).snake === 0? 0 : 1
+        }
+        if(p2map(ary).snake){
+          p2map(ary).checked= true
+        }else{
+          p2map(ary).checked= false
+        }
+    }
+
+    function makeFood(){
+      let randomP= [Math.floor(Math.random()*td), Math.floor(Math.random()*tr)]
+
+      p2map(randomP).checked= true
+      p2map(randomP).food= true
+    }
+
+    function isGameOver(ary){
+      if(ary[0] < 0 || ary[0] === td || ary[1] < 0 || ary[1] === tr){
+        // map.style.border= 'red solid 10px'
+        alert('Game over!')
+        gameOver= true
+        clearInterval(stopID)
+        return true
+      }else{
+        return false
+      }
+    }
+
+
+  </script>
+</body>
+</html>
